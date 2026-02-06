@@ -135,9 +135,14 @@ class InferenceEngine:
         Returns (decoded_text, n_input_tokens, n_output_tokens).
         """
         messages = [{"role": "user", "content": prompt}]
-        input_ids = tokenizer.apply_chat_template(
+        encoded = tokenizer.apply_chat_template(
             messages, add_generation_prompt=True, return_tensors="pt"
-        ).to(model.device)
+        )
+        # apply_chat_template may return a tensor or a BatchEncoding
+        if hasattr(encoded, "input_ids"):
+            input_ids = encoded["input_ids"].to(model.device)
+        else:
+            input_ids = encoded.to(model.device)
 
         n_input_tokens = input_ids.shape[1]
 
