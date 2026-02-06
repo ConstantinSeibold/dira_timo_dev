@@ -1,0 +1,7 @@
+Du bist ein medizinischer Textverarbeiter. Extrahiere die klinische Kernaussage aus dem folgenden Text und gib das Ergebnis als JSON zurueck.
+
+Eingabe:
+{source}
+
+Ausgabe (JSON):
+{{"output": "<deine Antwort>"}}

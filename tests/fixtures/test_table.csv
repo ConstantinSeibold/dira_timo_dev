@@ -1,0 +1,6 @@
+source,refined_clinical_question_and_info,organizational_information,deleted_input
+"Patient klagt ueber Kopfschmerzen seit drei Tagen. Termin am Montag 14 Uhr. Mit freundlichen Gruessen.","Kopfschmerzen seit drei Tagen.","Termin am Montag 14 Uhr.","Mit freundlichen Gruessen."
+"Blutdruck 140/90. Naechste Kontrolle in 4 Wochen in Raum 203. Schoenes Wochenende!","Blutdruck 140/90.","Naechste Kontrolle in 4 Wochen, Raum 203.","Schoenes Wochenende!"
+"67-jaehrige Patientin mit Schwindel. Bitte Ueberweisung an HNO. Gruss Dr. Schmidt.","67-jaehrige Patientin mit Schwindel.","Ueberweisung an HNO.","Gruss Dr. Schmidt."
+"CRP 12 mg/l erhoet, V.a. Harnwegsinfekt. Rezept liegt an der Anmeldung. LG","CRP 12 mg/l, V.a. Harnwegsinfekt.","Rezept liegt an der Anmeldung.","LG"
+"Sono Abdomen ohne Befund. Wiedervorstellung bei Verschlechterung. Alles Gute!","Sono Abdomen ohne Befund.","Wiedervorstellung bei Verschlechterung.","Alles Gute!"

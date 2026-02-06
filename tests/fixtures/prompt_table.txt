@@ -1,0 +1,7 @@
+Du bist ein medizinischer Textverarbeiter. Teile den folgenden klinischen Text in drei Kategorien auf und gib das Ergebnis als JSON zurueck.
+
+Eingabe:
+{source}
+
+Ausgabe (JSON):
+{{"refined_clinical_question_and_info": "<klinische Frage und relevante Infos>", "organizational_information": "<organisatorische Infos>", "deleted_input": "<irrelevante Teile>"}}
