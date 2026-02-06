@@ -30,10 +30,12 @@ class InferenceEngine:
 
     def _model_already_done(self, df, config: ModelConfig) -> bool:
         """Check whether all pred columns for this model already exist."""
-        return all(
+        pred_cols = all(
             get_pred_column_name(f, config.short_name) in df.columns
             for f in self.fields
         )
+        raw_col = f"raw_{config.short_name}" in df.columns
+        return pred_cols and raw_col
 
     def run(self, df, models: list[ModelConfig], output_path: str):
         """Run inference for each model sequentially, saving after each.
@@ -76,7 +78,9 @@ class InferenceEngine:
 
     def _run_single_model(self, df, model, tokenizer, config: ModelConfig) -> dict:
         """Run inference for one model across all rows."""
-        # Initialize prediction columns
+        # Initialize prediction columns + raw output column
+        raw_col = f"raw_{config.short_name}"
+        df[raw_col] = ""
         for field in self.fields:
             col = get_pred_column_name(field, config.short_name)
             df[col] = ""
@@ -100,6 +104,8 @@ class InferenceEngine:
             # Strip <think>...</think> blocks for thinking models
             if config.is_thinking:
                 raw_output = strip_thinking_tags(raw_output)
+
+            df.at[idx, raw_col] = raw_output
 
             parsed = self._parse_output(raw_output)
 
