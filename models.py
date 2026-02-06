@@ -60,7 +60,10 @@ def get_models(selector: str) -> list[ModelConfig]:
 
 def load_model_and_tokenizer(config: ModelConfig):
     """Load model and tokenizer with NF4 4-bit quantization."""
-    kwargs: dict = {"device_map": "auto"}
+    kwargs: dict = {
+        "device_map": "auto",
+        "low_cpu_mem_usage": True,
+    }
     if config.trust_remote_code:
         kwargs["trust_remote_code"] = True
 
@@ -87,6 +90,7 @@ def unload_model(model, tokenizer):
     """Free GPU memory occupied by the model."""
     del model
     del tokenizer
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
