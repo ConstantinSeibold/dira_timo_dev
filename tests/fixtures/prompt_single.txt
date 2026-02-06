@@ -4,4 +4,4 @@ Eingabe:
 {source}
 
 Ausgabe (JSON):
-{{"output": "<deine Antwort>"}}
+{"output": "<deine Antwort>"}

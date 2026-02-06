@@ -96,6 +96,17 @@ def extract_json_from_text(text: str) -> dict | None:
     except (json.JSONDecodeError, TypeError):
         pass
 
+    # Level 1b: collapse doubled braces {{ -> { and }} -> }
+    # Models sometimes mimic prompt escaping and output {{"key": "val"}}
+    if "{{" in text or "}}" in text:
+        collapsed = text.replace("{{", "{").replace("}}", "}")
+        try:
+            obj = json.loads(collapsed)
+            if isinstance(obj, dict):
+                return obj
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     # Strip markdown code fences if present
     cleaned = text
     cleaned = re.sub(r"```(?:json)?\s*", "", cleaned)
@@ -133,7 +144,17 @@ def extract_json_from_text(text: str) -> dict | None:
                     if isinstance(obj, dict):
                         return obj
                 except (json.JSONDecodeError, TypeError):
-                    return None
+                    pass
+                # Try collapsing doubled braces in the candidate
+                if "{{" in candidate or "}}" in candidate:
+                    collapsed = candidate.replace("{{", "{").replace("}}", "}")
+                    try:
+                        obj = json.loads(collapsed)
+                        if isinstance(obj, dict):
+                            return obj
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                return None
     return None
 
 

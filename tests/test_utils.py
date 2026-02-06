@@ -146,6 +146,22 @@ class TestExtractJson:
         assert result["organizational_information"] == "Termin Montag"
         assert result["deleted_input"] == "MfG"
 
+    def test_double_braces(self):
+        """Models sometimes mimic prompt escaping and output doubled braces."""
+        text = '{{"output": "Kopfschmerzen seit drei Tagen"}}'
+        result = extract_json_from_text(text)
+        assert result == {"output": "Kopfschmerzen seit drei Tagen"}
+
+    def test_double_braces_with_surrounding_text(self):
+        text = 'Here is the result:\n{{"output": "answer"}}\n'
+        result = extract_json_from_text(text)
+        assert result == {"output": "answer"}
+
+    def test_double_braces_markdown_fenced(self):
+        text = '```json\n{{"output": "answer"}}\n```'
+        result = extract_json_from_text(text)
+        assert result == {"output": "answer"}
+
 
 # ---------------------------------------------------------------------------
 # Column naming

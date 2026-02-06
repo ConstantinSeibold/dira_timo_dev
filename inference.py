@@ -194,10 +194,13 @@ class InferenceEngine:
                 "Pydantic validation failed: %s | keys=%s | raw=%s",
                 e, list(parsed_dict.keys()), raw_text[:200],
             )
-            # Partial: store whatever fields exist and are strings
+            # Partial: store whatever fields exist, stringify non-strings
             for field in self.fields:
                 val = parsed_dict.get(field)
-                if isinstance(val, str):
-                    result["fields"][field] = val
+                if val is not None:
+                    if isinstance(val, str):
+                        result["fields"][field] = val
+                    else:
+                        result["fields"][field] = json.dumps(val, ensure_ascii=False)
 
         return result
