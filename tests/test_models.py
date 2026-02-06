@@ -16,7 +16,6 @@ class TestModelRegistry:
         assert len(thinking) >= 2
         for m in thinking:
             assert m.tier == "thinking"
-            assert m.quantize_4bit is True
 
 
 class TestGetModels:

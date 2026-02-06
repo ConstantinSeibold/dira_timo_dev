@@ -5,7 +5,7 @@ import time
 import torch
 
 from models import ModelConfig, load_model_and_tokenizer, unload_model
-from schemas import get_schema, get_target_fields
+from schemas import create_dynamic_schema
 from utils import (
     extract_json_from_text,
     format_prompt,
@@ -20,12 +20,11 @@ logger = logging.getLogger(__name__)
 class InferenceEngine:
     """Runs inference for one or more models on a DataFrame of prompts."""
 
-    def __init__(self, prompt_template: str, mode: str, max_new_tokens: int = 1024):
+    def __init__(self, prompt_template: str, fields: list[str], max_new_tokens: int = 1024):
         self.prompt_template = prompt_template
-        self.mode = mode
         self.max_new_tokens = max_new_tokens
-        self.schema_cls = get_schema(mode)
-        self.fields = get_target_fields(mode)
+        self.schema_cls = create_dynamic_schema(fields)
+        self.fields = fields
         self.run_stats: dict[str, dict] = {}
 
     def _model_already_done(self, df, config: ModelConfig) -> bool:

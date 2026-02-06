@@ -8,7 +8,7 @@ import sys
 from evaluation import compute_metrics, print_metrics_summary
 from inference import InferenceEngine
 from models import get_models
-from utils import load_csv, load_prompt, save_csv
+from utils import get_target_fields_from_df, load_csv, load_prompt, save_csv
 from visualize import generate_plots
 
 
@@ -27,12 +27,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--metrics", required=True, help="Path for the metrics CSV."
-    )
-    parser.add_argument(
-        "--mode",
-        required=True,
-        choices=["single", "table"],
-        help="Output mode: 'single' (one field) or 'table' (three fields).",
     )
     parser.add_argument(
         "--model",
@@ -83,8 +77,12 @@ def main() -> None:
     logger.info("Loaded prompt template from %s", args.prompt)
 
     # Load input CSV
-    df = load_csv(args.csv, args.mode)
+    df = load_csv(args.csv)
     logger.info("Loaded CSV with %d rows from %s", len(df), args.csv)
+
+    # Auto-detect target fields
+    fields = get_target_fields_from_df(df)
+    logger.info("Detected target fields: %s", fields)
 
     # Resolve models
     models = get_models(args.model)
@@ -99,7 +97,7 @@ def main() -> None:
     if not args.skip_inference:
         engine = InferenceEngine(
             prompt_template=prompt_template,
-            mode=args.mode,
+            fields=fields,
             max_new_tokens=args.max_new_tokens,
         )
         df = engine.run(df, models, args.output)
@@ -108,12 +106,13 @@ def main() -> None:
         logger.info("Final output saved to %s", args.output)
     else:
         # Load existing output CSV for metrics computation
-        df = load_csv(args.output, args.mode)
+        df = load_csv(args.output)
+        fields = get_target_fields_from_df(df)
         logger.info("Loaded existing output from %s (--skip-inference)", args.output)
 
     # --- Metrics ---
     if not args.skip_metrics:
-        metrics_df = compute_metrics(df, args.mode, args.metrics, run_stats=run_stats)
+        metrics_df = compute_metrics(df, fields, args.metrics, run_stats=run_stats)
         print_metrics_summary(metrics_df)
 
         # --- Plots ---

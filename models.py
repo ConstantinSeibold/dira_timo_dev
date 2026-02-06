@@ -10,29 +10,28 @@ class ModelConfig:
     short_name: str
     hf_id: str
     tier: str
-    quantize_4bit: bool
     is_thinking: bool = False
     trust_remote_code: bool = False
 
 
 MODEL_REGISTRY: list[ModelConfig] = [
     # 3B tier
-    ModelConfig("llama3.2-3b", "meta-llama/Llama-3.2-3B-Instruct", "3b", False),
-    ModelConfig("qwen2.5-3b", "Qwen/Qwen2.5-3B-Instruct", "3b", False),
-    ModelConfig("phi3.5-mini", "microsoft/Phi-3.5-mini-instruct", "3b", False),
+    ModelConfig("llama3.2-3b", "meta-llama/Llama-3.2-3B-Instruct", "3b"),
+    ModelConfig("qwen2.5-3b", "Qwen/Qwen2.5-3B-Instruct", "3b"),
+    ModelConfig("phi3.5-mini", "microsoft/Phi-3.5-mini-instruct", "3b"),
     # 7B tier
-    ModelConfig("mistral-7b", "mistralai/Mistral-7B-Instruct-v0.3", "7b", False),
-    ModelConfig("llama3.1-8b", "meta-llama/Llama-3.1-8B-Instruct", "7b", False),
-    ModelConfig("qwen2.5-7b", "Qwen/Qwen2.5-7B-Instruct", "7b", False),
+    ModelConfig("mistral-7b", "mistralai/Mistral-7B-Instruct-v0.3", "7b"),
+    ModelConfig("llama3.1-8b", "meta-llama/Llama-3.1-8B-Instruct", "7b"),
+    ModelConfig("qwen2.5-7b", "Qwen/Qwen2.5-7B-Instruct", "7b"),
     # 30B tier
-    ModelConfig("qwen2.5-32b", "Qwen/Qwen2.5-32B-Instruct", "30b", True),
-    ModelConfig("mistral-small", "mistralai/Mistral-Small-Instruct-2409", "30b", True),
+    ModelConfig("qwen2.5-32b", "Qwen/Qwen2.5-32B-Instruct", "30b"),
+    ModelConfig("mistral-small", "mistralai/Mistral-Small-Instruct-2409", "30b"),
     # 70B tier
-    ModelConfig("llama3.1-70b", "meta-llama/Llama-3.1-70B-Instruct", "70b", True),
-    ModelConfig("qwen2.5-72b", "Qwen/Qwen2.5-72B-Instruct", "70b", True),
+    ModelConfig("llama3.1-70b", "meta-llama/Llama-3.1-70B-Instruct", "70b"),
+    ModelConfig("qwen2.5-72b", "Qwen/Qwen2.5-72B-Instruct", "70b"),
     # Thinking tier
-    ModelConfig("qwq-32b", "Qwen/QwQ-32B-Preview", "thinking", True, is_thinking=True),
-    ModelConfig("deepseek-r1", "deepseek-ai/DeepSeek-R1", "thinking", True, is_thinking=True, trust_remote_code=True),
+    ModelConfig("qwq-32b", "Qwen/QwQ-32B-Preview", "thinking", is_thinking=True),
+    ModelConfig("deepseek-r1", "deepseek-ai/DeepSeek-R1", "thinking", is_thinking=True, trust_remote_code=True),
 ]
 
 _NAME_INDEX = {m.short_name: m for m in MODEL_REGISTRY}
@@ -60,20 +59,17 @@ def get_models(selector: str) -> list[ModelConfig]:
 
 
 def load_model_and_tokenizer(config: ModelConfig):
-    """Load model and tokenizer with appropriate dtype/quantization."""
+    """Load model and tokenizer with NF4 4-bit quantization."""
     kwargs: dict = {"device_map": "auto"}
     if config.trust_remote_code:
         kwargs["trust_remote_code"] = True
 
-    if config.quantize_4bit:
-        kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-        )
-    else:
-        kwargs["torch_dtype"] = torch.float16
+    kwargs["quantization_config"] = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(
         config.hf_id, trust_remote_code=config.trust_remote_code

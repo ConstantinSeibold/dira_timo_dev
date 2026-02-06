@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from schemas import get_target_fields
 
 
 # ---------------------------------------------------------------------------
@@ -28,23 +27,27 @@ def format_prompt(template: str, source_text: str) -> str:
 # CSV I/O
 # ---------------------------------------------------------------------------
 
-def load_csv(path: str, mode: str) -> pd.DataFrame:
-    """Load CSV and validate that required columns exist.
-
-    Required columns:
-      - 'source' (always)
-      - target field columns matching the mode's schema
-    """
+def load_csv(path: str) -> pd.DataFrame:
+    """Load CSV and validate that the 'source' column exists."""
     df = pd.read_csv(path, encoding="utf-8-sig", keep_default_na=False)
 
-    required = ["source"] + get_target_fields(mode)
-    missing = [c for c in required if c not in df.columns]
-    if missing:
+    if "source" not in df.columns:
         raise ValueError(
-            f"CSV {path} is missing required columns: {missing}. "
+            f"CSV {path} is missing required 'source' column. "
             f"Found: {list(df.columns)}"
         )
     return df
+
+
+def get_target_fields_from_df(df: pd.DataFrame) -> list[str]:
+    """Return all columns except 'source' and any 'pred_*' / 'raw_*' columns.
+
+    Sorted for deterministic order.
+    """
+    return sorted(
+        col for col in df.columns
+        if col != "source" and not col.startswith("pred_") and not col.startswith("raw_")
+    )
 
 
 def save_csv(df: pd.DataFrame, path: str) -> None:
@@ -167,9 +170,8 @@ def get_pred_column_name(field: str, model_short_name: str) -> str:
     return f"pred_{field}_{model_short_name}"
 
 
-def discover_models_in_df(df: pd.DataFrame, mode: str) -> list[str]:
+def discover_models_in_df(df: pd.DataFrame, fields: list[str]) -> list[str]:
     """Find all model short names from existing pred_* columns in a DataFrame."""
-    fields = get_target_fields(mode)
     models: set[str] = set()
     for col in df.columns:
         for field in fields:

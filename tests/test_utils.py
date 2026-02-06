@@ -6,6 +6,7 @@ from utils import (
     extract_json_from_text,
     format_prompt,
     get_pred_column_name,
+    get_target_fields_from_df,
     load_csv,
     load_prompt,
     save_csv,
@@ -48,27 +49,57 @@ class TestFormatPrompt:
 # ---------------------------------------------------------------------------
 
 class TestLoadCsv:
-    def test_single_mode(self, csv_single_path):
-        df = load_csv(csv_single_path, "single")
+    def test_single_csv(self, csv_single_path):
+        df = load_csv(csv_single_path)
         assert "source" in df.columns
         assert "output" in df.columns
         assert len(df) == 5
 
-    def test_table_mode(self, csv_table_path):
-        df = load_csv(csv_table_path, "table")
+    def test_table_csv(self, csv_table_path):
+        df = load_csv(csv_table_path)
         assert "source" in df.columns
         assert "refined_clinical_question_and_info" in df.columns
         assert "organizational_information" in df.columns
         assert "deleted_input" in df.columns
         assert len(df) == 5
 
-    def test_wrong_mode_for_csv(self, csv_single_path):
-        with pytest.raises(ValueError, match="missing required columns"):
-            load_csv(csv_single_path, "table")
+    def test_missing_source_column(self, tmp_path):
+        csv_path = tmp_path / "bad.csv"
+        csv_path.write_text("foo,bar\n1,2\n")
+        with pytest.raises(ValueError, match="source"):
+            load_csv(str(csv_path))
 
-    def test_single_csv_wrong_mode(self, csv_table_path):
-        with pytest.raises(ValueError, match="missing required columns"):
-            load_csv(csv_table_path, "single")
+
+class TestGetTargetFieldsFromDf:
+    def test_single_field(self):
+        df = pd.DataFrame({"source": ["s"], "output": ["o"]})
+        assert get_target_fields_from_df(df) == ["output"]
+
+    def test_multiple_fields(self):
+        df = pd.DataFrame({
+            "source": ["s"],
+            "refined_clinical_question_and_info": ["r"],
+            "organizational_information": ["o"],
+            "deleted_input": ["d"],
+        })
+        assert get_target_fields_from_df(df) == [
+            "deleted_input",
+            "organizational_information",
+            "refined_clinical_question_and_info",
+        ]
+
+    def test_excludes_pred_and_raw_columns(self):
+        df = pd.DataFrame({
+            "source": ["s"],
+            "output": ["o"],
+            "pred_output_model-a": ["x"],
+            "raw_model-a": ["r"],
+        })
+        assert get_target_fields_from_df(df) == ["output"]
+
+    def test_arbitrary_columns(self):
+        df = pd.DataFrame({"source": ["s"], "foo": ["f"], "bar": ["b"]})
+        assert get_target_fields_from_df(df) == ["bar", "foo"]
 
 
 class TestSaveCsv:
@@ -184,7 +215,7 @@ class TestColumnNaming:
             "pred_output_model-a": ["x"],
             "pred_output_model-b": ["y"],
         })
-        assert discover_models_in_df(df, "single") == ["model-a", "model-b"]
+        assert discover_models_in_df(df, ["output"]) == ["model-a", "model-b"]
 
     def test_discover_models_table(self):
         df = pd.DataFrame({
@@ -196,8 +227,9 @@ class TestColumnNaming:
             "pred_organizational_information_modelX": ["b"],
             "pred_deleted_input_modelX": ["c"],
         })
-        assert discover_models_in_df(df, "table") == ["modelX"]
+        fields = ["deleted_input", "organizational_information", "refined_clinical_question_and_info"]
+        assert discover_models_in_df(df, fields) == ["modelX"]
 
     def test_discover_no_models(self):
         df = pd.DataFrame({"source": ["s"], "output": ["o"]})
-        assert discover_models_in_df(df, "single") == []
+        assert discover_models_in_df(df, ["output"]) == []

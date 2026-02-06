@@ -5,7 +5,6 @@ from bert_score import score as bert_score_fn
 from rouge_score import rouge_scorer
 import sacrebleu
 
-from schemas import get_target_fields
 from utils import discover_models_in_df, get_pred_column_name, save_csv
 
 logger = logging.getLogger(__name__)
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def compute_metrics(
     df: pd.DataFrame,
-    mode: str,
+    fields: list[str],
     metrics_path: str,
     run_stats: dict[str, dict] | None = None,
 ) -> pd.DataFrame:
@@ -21,15 +20,14 @@ def compute_metrics(
 
     Args:
         df: DataFrame with predictions in pred_* columns.
-        mode: "single" or "table".
+        fields: List of target field names.
         metrics_path: Path to save the metrics CSV.
         run_stats: Optional dict mapping model short_name to inference stats
                    (runtime_s, tokens_in, tokens_out) from InferenceEngine.
 
     Returns a metrics DataFrame and saves it to metrics_path.
     """
-    fields = get_target_fields(mode)
-    model_names = discover_models_in_df(df, mode)
+    model_names = discover_models_in_df(df, fields)
 
     if not model_names:
         logger.warning("No model predictions found in DataFrame.")
