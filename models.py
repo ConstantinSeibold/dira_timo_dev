@@ -12,6 +12,7 @@ class ModelConfig:
     tier: str
     quantize_4bit: bool
     is_thinking: bool = False
+    trust_remote_code: bool = False
 
 
 MODEL_REGISTRY: list[ModelConfig] = [
@@ -31,7 +32,7 @@ MODEL_REGISTRY: list[ModelConfig] = [
     ModelConfig("qwen2.5-72b", "Qwen/Qwen2.5-72B-Instruct", "70b", True),
     # Thinking tier
     ModelConfig("qwq-32b", "Qwen/QwQ-32B-Preview", "thinking", True, is_thinking=True),
-    ModelConfig("deepseek-r1", "deepseek-ai/DeepSeek-R1", "thinking", True, is_thinking=True),
+    ModelConfig("deepseek-r1", "deepseek-ai/DeepSeek-R1", "thinking", True, is_thinking=True, trust_remote_code=True),
 ]
 
 _NAME_INDEX = {m.short_name: m for m in MODEL_REGISTRY}
@@ -60,7 +61,9 @@ def get_models(selector: str) -> list[ModelConfig]:
 
 def load_model_and_tokenizer(config: ModelConfig):
     """Load model and tokenizer with appropriate dtype/quantization."""
-    kwargs: dict = {"device_map": "auto", "trust_remote_code": True}
+    kwargs: dict = {"device_map": "auto"}
+    if config.trust_remote_code:
+        kwargs["trust_remote_code"] = True
 
     if config.quantize_4bit:
         kwargs["quantization_config"] = BitsAndBytesConfig(
@@ -72,7 +75,9 @@ def load_model_and_tokenizer(config: ModelConfig):
     else:
         kwargs["torch_dtype"] = torch.float16
 
-    tokenizer = AutoTokenizer.from_pretrained(config.hf_id, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        config.hf_id, trust_remote_code=config.trust_remote_code
+    )
     model = AutoModelForCausalLM.from_pretrained(config.hf_id, **kwargs)
 
     if tokenizer.pad_token is None:
