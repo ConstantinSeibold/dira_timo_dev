@@ -60,6 +60,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Directory to save visualisation plots. If omitted, no plots are generated.",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable DEBUG logging (shows raw model output on parse failures).",
+    )
     return parser.parse_args()
 
 
@@ -67,7 +72,7 @@ def main() -> None:
     args = parse_args()
 
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )

@@ -178,6 +178,7 @@ class InferenceEngine:
         # Level 1 + 2: extract JSON
         parsed_dict = extract_json_from_text(raw_text)
         if parsed_dict is None:
+            logger.debug("No JSON found in output: %s", raw_text[:300])
             return result
 
         result["json_success"] = True
@@ -188,7 +189,11 @@ class InferenceEngine:
             result["pydantic_valid"] = True
             for field in self.fields:
                 result["fields"][field] = getattr(validated, field)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "Pydantic validation failed: %s | keys=%s | raw=%s",
+                e, list(parsed_dict.keys()), raw_text[:200],
+            )
             # Partial: store whatever fields exist and are strings
             for field in self.fields:
                 val = parsed_dict.get(field)
