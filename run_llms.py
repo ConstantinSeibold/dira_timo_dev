@@ -55,6 +55,11 @@ def parse_args() -> argparse.Namespace:
         help="Directory to save visualisation plots. If omitted, no plots are generated.",
     )
     parser.add_argument(
+        "--quantize-4bit",
+        action="store_true",
+        help="Enable NF4 4-bit quantization via bitsandbytes (requires bitsandbytes).",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="Enable DEBUG logging (shows raw model output on parse failures).",
@@ -99,6 +104,7 @@ def main() -> None:
             prompt_template=prompt_template,
             fields=fields,
             max_new_tokens=args.max_new_tokens,
+            quantize_4bit=args.quantize_4bit,
         )
         df = engine.run(df, models, args.output)
         run_stats = engine.run_stats

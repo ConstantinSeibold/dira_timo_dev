@@ -2,7 +2,7 @@ import gc
 from dataclasses import dataclass
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 @dataclass
@@ -58,21 +58,26 @@ def get_models(selector: str) -> list[ModelConfig]:
     raise ValueError(f"Unknown model selector: {selector!r}. Valid: {valid}")
 
 
-def load_model_and_tokenizer(config: ModelConfig):
-    """Load model and tokenizer with NF4 4-bit quantization."""
+def load_model_and_tokenizer(config: ModelConfig, *, quantize_4bit: bool = False):
+    """Load model and tokenizer, optionally with NF4 4-bit quantization."""
     kwargs: dict = {
         "device_map": "auto",
         "low_cpu_mem_usage": True,
+        "torch_dtype": torch.float16,
     }
     if config.trust_remote_code:
         kwargs["trust_remote_code"] = True
 
-    kwargs["quantization_config"] = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_quant_type="nf4",
-    )
+    if quantize_4bit:
+        from transformers import BitsAndBytesConfig
+
+        kwargs.pop("torch_dtype", None)
+        kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(
         config.hf_id, trust_remote_code=config.trust_remote_code

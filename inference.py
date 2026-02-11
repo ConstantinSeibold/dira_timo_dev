@@ -20,9 +20,10 @@ logger = logging.getLogger(__name__)
 class InferenceEngine:
     """Runs inference for one or more models on a DataFrame of prompts."""
 
-    def __init__(self, prompt_template: str, fields: list[str], max_new_tokens: int = 1024):
+    def __init__(self, prompt_template: str, fields: list[str], max_new_tokens: int = 1024, quantize_4bit: bool = False):
         self.prompt_template = prompt_template
         self.max_new_tokens = max_new_tokens
+        self.quantize_4bit = quantize_4bit
         self.schema_cls = create_dynamic_schema(fields)
         self.fields = fields
         self.run_stats: dict[str, dict] = {}
@@ -49,7 +50,7 @@ class InferenceEngine:
                 continue
 
             logger.info("Loading model %s (%s)...", config.short_name, config.hf_id)
-            model, tokenizer = load_model_and_tokenizer(config)
+            model, tokenizer = load_model_and_tokenizer(config, quantize_4bit=self.quantize_4bit)
 
             stats = self._run_single_model(df, model, tokenizer, config)
             self.run_stats[config.short_name] = stats
