@@ -1,8 +1,11 @@
 import gc
+import logging
 from dataclasses import dataclass
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -72,17 +75,42 @@ def load_model_and_tokenizer(config: ModelConfig, *, quantize_4bit: bool = False
         from transformers import BitsAndBytesConfig
 
         kwargs.pop("torch_dtype", None)
-        kwargs["quantization_config"] = BitsAndBytesConfig(
+        bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4",
         )
+        kwargs["quantization_config"] = bnb_config
+        logger.info(
+            "4-bit quantization enabled: load_in_4bit=%s, quant_type=%s",
+            bnb_config.load_in_4bit, bnb_config.bnb_4bit_quant_type,
+        )
+
+    # Limit GPU memory to avoid OOM; overflow goes to CPU
+    if torch.cuda.is_available():
+        gpu_mem = torch.cuda.get_device_properties(0).total_memory
+        max_gpu = f"{int(gpu_mem * 0.85 / 1e9)}GiB"
+        kwargs["max_memory"] = {0: max_gpu, "cpu": "100GiB"}
+        logger.info("max_memory: GPU=%s, CPU=100GiB", max_gpu)
+
+    logger.info("from_pretrained kwargs: %s", {k: str(v)[:80] for k, v in kwargs.items()})
 
     tokenizer = AutoTokenizer.from_pretrained(
         config.hf_id, trust_remote_code=config.trust_remote_code
     )
     model = AutoModelForCausalLM.from_pretrained(config.hf_id, **kwargs)
+
+    # Verify quantization was actually applied
+    if quantize_4bit:
+        sample_layer = model.model.layers[0].self_attn.q_proj
+        layer_type = type(sample_layer).__name__
+        logger.info("Quantization check: layer type = %s", layer_type)
+        if "4bit" not in layer_type.lower() and "bnb" not in layer_type.lower():
+            logger.warning(
+                "QUANTIZATION NOT APPLIED — layer is %s, expected Linear4bit. "
+                "Model is loaded in full precision!", layer_type,
+            )
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
