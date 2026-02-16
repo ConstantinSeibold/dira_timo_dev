@@ -103,8 +103,15 @@ def load_model_and_tokenizer(config: ModelConfig, *, quantize_4bit: bool = False
 
     # Verify quantization was actually applied
     if quantize_4bit:
-        sample_layer = model.model.layers[0].self_attn.q_proj
-        layer_type = type(sample_layer).__name__
+        attn = model.model.layers[0].self_attn
+        # Phi-3.5 uses fused qkv_proj; most others use separate q_proj
+        for proj_name in ("q_proj", "qkv_proj", "o_proj"):
+            if hasattr(attn, proj_name):
+                sample_layer = getattr(attn, proj_name)
+                break
+        else:
+            sample_layer = None
+        layer_type = type(sample_layer).__name__ if sample_layer else "unknown"
         logger.info("Quantization check: layer type = %s", layer_type)
         if "4bit" not in layer_type.lower() and "bnb" not in layer_type.lower():
             logger.warning(
