@@ -167,7 +167,7 @@ def _compute_bertscore(
         return 0.0
 
     _, _, f1 = bert_score_fn(
-        valid_preds, valid_refs, model_type="deepset/gbert-base", verbose=False
+        valid_preds, valid_refs, model_type="deepset/gbert-base", num_layers=9, verbose=False
     )
 
     # Average over all rows (empty predictions contribute 0)
