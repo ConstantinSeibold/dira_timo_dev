@@ -1,7 +1,7 @@
 torch>=2.1.0
-transformers>=4.40.0
+transformers==4.45.2
 accelerate>=0.27.0
-bitsandbytes>=0.43.0,<0.48.0
+bitsandbytes==0.43.3
 pydantic>=2.0
 rouge-score>=0.1.2
 sacrebleu>=2.3.0
