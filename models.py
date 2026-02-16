@@ -32,9 +32,13 @@ MODEL_REGISTRY: list[ModelConfig] = [
     # 70B tier
     ModelConfig("llama3.1-70b", "meta-llama/Llama-3.1-70B-Instruct", "70b"),
     ModelConfig("qwen2.5-72b", "Qwen/Qwen2.5-72B-Instruct", "70b"),
-    # Thinking tier
-    ModelConfig("qwq-32b", "Qwen/QwQ-32B-Preview", "thinking", is_thinking=True),
-    ModelConfig("deepseek-r1", "deepseek-ai/DeepSeek-R1", "thinking", is_thinking=True, trust_remote_code=True),
+    # Thinking 7B tier
+    ModelConfig("deepseek-r1-14b", "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B", "thinking-7b", is_thinking=True),
+    # Thinking 30B tier
+    ModelConfig("qwq-32b", "Qwen/QwQ-32B-Preview", "thinking-30b", is_thinking=True),
+    ModelConfig("deepseek-r1-32b", "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", "thinking-30b", is_thinking=True),
+    # Thinking 70B tier
+    ModelConfig("deepseek-r1-70b", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", "thinking-70b", is_thinking=True),
 ]
 
 _NAME_INDEX = {m.short_name: m for m in MODEL_REGISTRY}
@@ -55,6 +59,9 @@ def get_models(selector: str) -> list[ModelConfig]:
         return list(MODEL_REGISTRY)
     if selector in _TIER_INDEX:
         return list(_TIER_INDEX[selector])
+    # "thinking" selects all thinking-* tiers
+    if selector == "thinking":
+        return [m for m in MODEL_REGISTRY if m.tier.startswith("thinking")]
     if selector in _NAME_INDEX:
         return [_NAME_INDEX[selector]]
     valid = sorted(set(["all"] + list(_TIER_INDEX.keys()) + list(_NAME_INDEX.keys())))

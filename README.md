@@ -28,7 +28,7 @@ python run_llms.py \
 | `--csv` | Yes | Input CSV with `source` column and target columns |
 | `--output` | Yes | Output CSV path (predictions appended as `pred_*` columns) |
 | `--metrics` | Yes | Metrics CSV output path |
-| `--model` | No | `all`, tier (`3b`, `7b`, `30b`, `70b`, `thinking`), or short name (default: `all`) |
+| `--model` | No | `all`, tier (`3b`, `7b`, `30b`, `70b`, `thinking-7b`, `thinking-30b`, `thinking-70b`), `thinking` (all thinking tiers), or short name (default: `all`) |
 | `--skip-inference` | No | Only compute metrics from existing `pred_*` columns |
 | `--skip-metrics` | No | Only run inference, skip metrics |
 | `--max-new-tokens` | No | Max generation tokens (default: 1024) |
@@ -58,8 +58,10 @@ All models are loaded with NF4 4-bit quantization (via `bitsandbytes`) for consi
 | 30b | `mistral-small` | `mistralai/Mistral-Small-Instruct-2409` |
 | 70b | `llama3.1-70b` | `meta-llama/Llama-3.1-70B-Instruct` |
 | 70b | `qwen2.5-72b` | `Qwen/Qwen2.5-72B-Instruct` |
-| thinking | `qwq-32b` | `Qwen/QwQ-32B-Preview` |
-| thinking | `deepseek-r1` | `deepseek-ai/DeepSeek-R1` |
+| thinking-7b | `deepseek-r1-14b` | `deepseek-ai/DeepSeek-R1-Distill-Qwen-14B` |
+| thinking-30b | `qwq-32b` | `Qwen/QwQ-32B-Preview` |
+| thinking-30b | `deepseek-r1-32b` | `deepseek-ai/DeepSeek-R1-Distill-Qwen-32B` |
+| thinking-70b | `deepseek-r1-70b` | `deepseek-ai/DeepSeek-R1-Distill-Llama-70B` |
 
 Thinking-tier models produce `<think>...</think>` reasoning blocks that are automatically stripped before JSON extraction.
 
