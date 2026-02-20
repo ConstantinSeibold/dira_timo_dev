@@ -162,6 +162,66 @@ def extract_json_from_text(text: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+# JSON schema → plain-text rendering
+# ---------------------------------------------------------------------------
+
+# Indentation prefixes matching the ground-truth annotation style.
+_INDENT_PREFIX = {
+    0: "",
+    1: "- ",
+    2: "    - ",
+    3: "        ",
+}
+
+# Row labels that should be excluded from the rendered plain text.
+_SKIP_LABELS = frozenset({"Gelöschte Inhalte:", "Gelöschte Inhalte"})
+
+
+def render_schema_to_plaintext(data: dict) -> str | None:
+    """Convert a JSON table-schema dict to evaluation-ready plain text.
+
+    Accepts the full schema (with ``table`` key) or just the table dict.
+    Returns *None* when *data* does not look like a valid schema so callers
+    can fall back to other strategies.
+    """
+    # Navigate to the rows list, tolerating both full-schema and bare-table input.
+    table = data.get("table", data) if isinstance(data, dict) else None
+    if not isinstance(table, dict):
+        return None
+    rows = table.get("rows")
+    if not isinstance(rows, list) or not rows:
+        return None
+
+    sections: list[str] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        label = row.get("label", "")
+        content = row.get("content")
+
+        if label in _SKIP_LABELS:
+            continue
+        if not isinstance(content, list) or not content:
+            continue
+
+        lines: list[str] = [label]
+        for item in content:
+            if not isinstance(item, dict):
+                continue
+            text = item.get("text", "")
+            if not text:
+                continue
+            level = item.get("indent_level", 0)
+            prefix = _INDENT_PREFIX.get(level, "")
+            lines.append(f"{prefix}{text}")
+
+        if len(lines) > 1:  # label + at least one content line
+            sections.append("\n".join(lines))
+
+    return "\n\n".join(sections) if sections else None
+
+
+# ---------------------------------------------------------------------------
 # Column naming helpers
 # ---------------------------------------------------------------------------
 

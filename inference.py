@@ -10,6 +10,7 @@ from utils import (
     extract_json_from_text,
     format_prompt,
     get_pred_column_name,
+    render_schema_to_plaintext,
     save_csv,
     strip_thinking_tags,
 )
@@ -170,6 +171,14 @@ class InferenceEngine:
     def _parse_output(self, raw_text: str) -> dict:
         """Parse raw model output into structured fields.
 
+        Strategy (generic, no model-specific logic):
+          1. Extract JSON from raw text.
+          2. Unwrap ``{"output": ...}`` envelope if present.
+          3. Try rendering the JSON table-schema to plain text.
+          4. Fallback: Pydantic validation (handles ``{"output": "plain text"}``).
+          5. Last resort: ``json.dumps`` so the prediction is never empty
+             when the model *did* produce valid JSON.
+
         Returns dict with keys:
           - json_success: bool
           - pydantic_valid: bool
@@ -181,7 +190,7 @@ class InferenceEngine:
             "fields": {f: "" for f in self.fields},
         }
 
-        # Level 1 + 2: extract JSON
+        # --- Step 1: extract JSON ----------------------------------------
         parsed_dict = extract_json_from_text(raw_text)
         if parsed_dict is None:
             logger.debug("No JSON found in output: %s", raw_text[:300])
@@ -189,24 +198,54 @@ class InferenceEngine:
 
         result["json_success"] = True
 
-        # Level 3: Pydantic validation
+        # --- Step 2: unwrap {"output": ...} if present --------------------
+        inner = parsed_dict
+        if "output" in parsed_dict:
+            val = parsed_dict["output"]
+            if isinstance(val, dict):
+                inner = val
+            elif isinstance(val, str):
+                # Value may be a JSON string or already plain text.
+                try:
+                    maybe_dict = json.loads(val)
+                    if isinstance(maybe_dict, dict):
+                        inner = maybe_dict
+                    else:
+                        # Plain-text answer – use directly.
+                        result["pydantic_valid"] = True
+                        for field in self.fields:
+                            result["fields"][field] = val
+                        return result
+                except (json.JSONDecodeError, TypeError):
+                    # Treat as plain-text answer.
+                    result["pydantic_valid"] = True
+                    for field in self.fields:
+                        result["fields"][field] = val
+                    return result
+
+        # --- Step 3: render JSON schema → plain text ----------------------
+        rendered = render_schema_to_plaintext(inner)
+        if rendered:
+            result["pydantic_valid"] = True
+            for field in self.fields:
+                result["fields"][field] = rendered
+            return result
+
+        # --- Step 4: Pydantic validation (original path) ------------------
         try:
             validated = self.schema_cls.model_validate(parsed_dict)
             result["pydantic_valid"] = True
             for field in self.fields:
                 result["fields"][field] = getattr(validated, field)
+            return result
         except Exception as e:
             logger.debug(
                 "Pydantic validation failed: %s | keys=%s | raw=%s",
                 e, list(parsed_dict.keys()), raw_text[:200],
             )
-            # Partial: store whatever fields exist, stringify non-strings
-            for field in self.fields:
-                val = parsed_dict.get(field)
-                if val is not None:
-                    if isinstance(val, str):
-                        result["fields"][field] = val
-                    else:
-                        result["fields"][field] = json.dumps(val, ensure_ascii=False)
+
+        # --- Step 5: last resort – stringify entire dict ------------------
+        for field in self.fields:
+            result["fields"][field] = json.dumps(inner, ensure_ascii=False)
 
         return result

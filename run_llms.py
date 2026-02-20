@@ -46,8 +46,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-new-tokens",
         type=int,
-        default=1024,
-        help="Maximum number of new tokens to generate (default: 1024).",
+        default=8192,
+        help="Maximum number of new tokens to generate (default: 8192).",
     )
     parser.add_argument(
         "--plots-dir",
